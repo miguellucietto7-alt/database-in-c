@@ -45,6 +45,7 @@ string search_in_table(DataBase*, const string, const string);
 void define_table(DataBase*, const string, string*, size_t);
 void create_table(DataBase*, const string);
 void insert_table(DataBase*, Table*);
+void insert_collum(Table*, string, size_t);
 
 TokenList* tokenize(string);
 void free_tokens(TokenList*);

@@ -110,6 +110,15 @@ TokenList* tokenize(string line)
     return list;
 }
 
+void free_tokens(TokenList* list)
+{
+    if (!list || !list->line || !list->tokens) return;
+
+    free(list->line);
+    free(list->tokens);
+    free(list);
+}
+
 int main(void)
 {
 
