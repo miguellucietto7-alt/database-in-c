@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <dirent.h>
 #include "read.h"
 #include "utils.h"
 #include "db.h"
 
+#define MKDIR(dir) mkdir(dir, 0777)
 
 void insert_table(DataBase* db, Table* table)
 {
@@ -29,12 +33,12 @@ void create_table(DataBase* db, const string name)
     if (!table) return;
 
     table->name = strdup(name);
-    table->collums = NULL;
-    table->collums_count = 0;
     table->collums_cap = 4;
-    table->rows = NULL;
-    table->rows_count = 0;
+    table->collums_count = 0;
+    table->collums = malloc(table->collums_cap * sizeof(string));
     table->rows_cap = 16;
+    table->rows_count = 0;
+    table->rows = malloc(table->rows_cap * sizeof(string*));
 
     insert_table(db, table);
 }
@@ -57,11 +61,30 @@ void insert_collum(Table* table, string collum, size_t index)
     if (table->collums_cap == table->collums_count)
     {
         table->collums_cap *= 2;
-        string* tmp = realloc(table->collums, table->collums_cap);
+        string* tmp = realloc(table->collums, table->collums_cap * sizeof(string));
         if (!tmp) return;
         table->collums = tmp;
     }
     table->collums[index] = strdup(collum);
+    table->collums_count++;
+}
+
+void insert_row(Table* table, string* row, size_t index)
+{
+    if (!table || !row || !*row) return;
+    if (table->rows_cap == table->rows_count)
+    {
+        table->rows_cap  *= 2;
+        string** temp = realloc(table->rows, table->rows_cap * sizeof(string*));
+        if (!temp) return;
+        table->rows = temp;
+    }
+    table->rows[index] = malloc(table->collums_count * sizeof(string));
+    for (size_t i = 0; i < table->collums_count; i++)
+    {
+        table->rows[index][i] = strdup(row[i]);
+    }
+    table->rows_count++;
 }
 
 void define_table(DataBase* db, const string name, string* collums, size_t elements_count)
@@ -76,7 +99,7 @@ void define_table(DataBase* db, const string name, string* collums, size_t eleme
     }
 }
 
-TokenList* tokenize(string line)
+TokenList* tokenize(string line, const string delim)
 {
     if (!line) return NULL;
     TokenList* list = malloc(sizeof(TokenList));
@@ -84,11 +107,10 @@ TokenList* tokenize(string line)
 
     list->count = 0;
     list->cap = 8;
-    list->line = strdup(line);
     list->tokens = malloc(list->cap * sizeof(string));
 
     string token;
-    token = strtok(line, " ");
+    token = strtok(line, delim);
 
     while(token != NULL)
     {
@@ -105,21 +127,156 @@ TokenList* tokenize(string line)
         }
         list->tokens[list->count] = strdup(token);
         list->count++;
-        token = strtok(NULL, " ");
+        token = strtok(NULL, delim);
     }
     return list;
 }
 
 void free_tokens(TokenList* list)
 {
-    if (!list || !list->line || !list->tokens) return;
+    if (!list || !list->tokens) return;
 
-    free(list->line);
+    for (size_t i = 0; i < list->count; i++) free(list->tokens[i]);
     free(list->tokens);
     free(list);
 }
 
+Table* load_table(string path)
+{
+    if (!path) return NULL;
+    Table* table = malloc(sizeof(Table));
+    if(!table) return NULL;
+    FILE* file = fopen(path, "r");
+
+    table->collums_cap = 4;
+    table->collums_count = 0;
+    table->rows_cap = 16;
+    table->rows_count = 0;
+    table->collums = malloc(table->collums_cap * sizeof(string));
+    table->rows = malloc(table->rows_cap * sizeof(string*));
+
+    char name[128];
+    fgets(name, sizeof(name), file);
+    name[strcspn(name, "\n")] = '\0';
+    table->name = strdup(name);
+
+    char line[2048];
+    fgets(line, sizeof(line), file);
+    TokenList* list = tokenize(line, "|");
+    for (size_t i = 0; i < list->count; i++) insert_collum(table, list->tokens[i], i);
+    free_tokens(list);
+    while(fgets(line, sizeof(line), file) != NULL)
+    {
+        list = tokenize(line, "|");
+        insert_row(table, list->tokens, table->rows_count);
+        free_tokens(list);
+    }
+    fclose(file);
+    return table;
+}
+
+void load_db()
+{
+    DataBase* db = malloc(sizeof(DataBase));
+    if (!db) return;
+
+    db->cap = 4;
+    db->count = 0;
+    db->tables = malloc(db->cap * sizeof(Table*));
+
+    DIR* dir = opendir(".database_migue");
+    if (!dir) return;
+
+    size_t count = 0;
+
+    struct dirent* archive;
+    archive = readdir(dir);
+    while (archive != NULL)
+    {
+        if (strcmp(archive->d_name, ".") == 0 || strcmp(archive->d_name, "..") == 0)
+        {
+            archive = readdir(dir);
+            continue;
+        }
+        
+        char path[1028];
+        snprintf(path, sizeof(path), ".database_migue/%s", archive->d_name);
+        Table* table = load_table(path);
+        if (table) 
+        {
+            insert_table(db, table);
+            count++;
+        }
+        archive = readdir(dir);
+    }
+    db->count = count;
+}
+
+void save_table(const string path, Table* table)
+{
+    if (!table) return;
+    FILE* file = fopen(path, "w");
+
+    fprintf(file, "%s\n", table->name);
+    for (size_t i = 0; i < table->collums_count - 1; i++)
+    {
+        fprintf(file, "%s|", table->collums[i]);
+    }
+    fprintf(file, "%s\n", table->collums[table->collums_count -1]);
+
+    for (size_t j = 0; j < table->rows_count; j++)
+    {
+        for (size_t i = 0; i < table->collums_count; i++)
+        {
+            fprintf(file, "%s|", table->rows[j][i]);
+        }
+        fprintf(file, "\n");
+    }
+    fclose(file);
+}
+
+void save_db(DataBase* db)
+{
+    if (!db) return;
+    MKDIR(".database_migue");
+
+    for (size_t i = 0; i < db->count; i++)
+    {
+        char path[512];
+        snprintf(path, sizeof(path), ".database_migue/%s", db->tables[i]->name);
+        save_table(path, db->tables[i]);
+    }
+}
+
+void free_table(Table* table)
+{
+    if (!table || !table->collums || !table->rows || !table->name) return;
+    for (size_t i = 0; i < table->rows_count; i++)
+    {
+        for (size_t j = 0; j < table->collums_count; j++)
+        {
+            free(table->rows[i][j]);
+        }
+        free(table->rows[i]);
+    }
+    for (size_t i = 0; i < table->collums_count; i++)
+    {
+        free(table->collums[i]);
+    }
+    free(table->collums);
+    free(table->name);
+    free(table);
+}
+
+void free_db(DataBase* db)
+{
+    if (!db || !db->tables) return;
+    for (size_t i = 0; i < db->count; i++) free_table(db->tables[i]);
+    free(db->tables);
+    free(db);
+}
+
 int main(void)
 {
-
+    return 0;
 }

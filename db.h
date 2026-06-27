@@ -10,7 +10,6 @@ typedef struct Table Table;
 typedef struct DataBase DataBase;
 
 typedef struct TokenList {
-    string line;
     string* tokens;
     size_t count;
     size_t cap;
@@ -37,7 +36,7 @@ typedef struct DataBase {
 
 
 void save_db(DataBase*);
-void load_db(DataBase*);
+void load_db();
 
 Table* search_table(DataBase*, const string);
 string search_in_table(DataBase*, const string, const string);
