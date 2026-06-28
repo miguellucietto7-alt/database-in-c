@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -175,17 +176,17 @@ Table* load_table(string path)
     return table;
 }
 
-void load_db()
+DataBase* load_db()
 {
     DataBase* db = malloc(sizeof(DataBase));
-    if (!db) return;
+    if (!db) return NULL;
 
     db->cap = 4;
     db->count = 0;
     db->tables = malloc(db->cap * sizeof(Table*));
 
     DIR* dir = opendir(".database_migue");
-    if (!dir) return;
+    if (!dir) return db;
 
     size_t count = 0;
 
@@ -210,6 +211,7 @@ void load_db()
         archive = readdir(dir);
     }
     db->count = count;
+    return db;
 }
 
 void save_table(const string path, Table* table)
@@ -276,7 +278,111 @@ void free_db(DataBase* db)
     free(db);
 }
 
-int main(void)
+
+void debug_tokens(TokenList* list)
 {
+    if (!list) {
+        printf("Cannot debug NULL pointer\n");
+        return;
+    }
+    printf("\n=========================================\n");
+    for (size_t i = 0; i < list->count; i++)
+    {
+        printf("Token %zu: %s\n", i, list->tokens[i]);
+    }
+    printf("=========================================\n");
+}
+
+bool expect(TokenList* list, size_t* current, const string expected)
+{
+    if (!list || !current || *current >= list->count || !expected) return false;
+    if (strcmp(list->tokens[*current], expected) != 0) return false;
+    
+    (*current)++;
+    return true;
+}
+
+string peek(TokenList* list, size_t current)
+{
+    if (!list || !list->tokens || current >= list->count) return NULL;
+
+    return list->tokens[current];
+}
+
+string advance(TokenList* list, size_t* current)
+{
+    if (!list || !current || *current >= list->count) return NULL;
+
+    return list->tokens[(*current)++];
+}
+
+SelectQuery* parse_select(string line)
+{
+    SelectQuery* query = malloc(sizeof(SelectQuery));
+    TokenList* list = tokenize(line, " ");
+    if (!query || !list) return NULL;
+
+    size_t current = 0;
+    if(!expect(list, &current, "SELECT"))
+    {
+        free_tokens(list);
+        free(query);
+        return NULL;
+    }
+    string token;
+    do{
+        token = advance(list, &current);
+        if (!token)
+        {
+            printf("Syntax error: always use FROM with SELECT\n");
+            free_tokens(list);
+            free(query);
+        }
+    }while(strcmp(token, "FROM") != 0);
+
+    char collums[256] = "";
+    for (size_t i = 1; i < current - 1; i++)
+    {
+        strcat(collums, list->tokens[i]);
+    }
+    query->col_list = tokenize(collums, ", ");
+
+    query->table_name = strdup(advance(list, &current));
+
+    token = peek(list, current);
+    if (!token || strcmp(token, "WHERE") != 0)
+    {
+        query->condition_collum = NULL;
+        query->condition_value = NULL;
+        query->has_condition = false;
+        return query;
+    }
+    
+    advance(list, &current);
+    
+    query->condition_collum = strdup(advance(list, &current));
+    
+    advance(list, &current);
+
+    query->condition_value = strdup(advance(list, &current));
+    free_tokens(list);
+
+    return query;
+}
+
+int main(void) {
+    DataBase* db = load_db();
+
+    char s[10][1000] = {"SELECT name, id FROM people", 
+                "SELECT name,id FROM people", 
+                "SELECT name,id FROM people WHERE this = that"};
+
+    SelectQuery* query[3] = {parse_select(s[0]), parse_select(s[1]), parse_select(s[2])};
+
+    for (size_t i = 0; i < 3; i++)
+    {
+        debug_tokens(query[i]->col_list);
+    }
+
     return 0;
 }

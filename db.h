@@ -2,12 +2,27 @@
 #define DB_H
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #define string char*
+
+typedef struct  SelectQuery SelectQuery;
 
 typedef struct TokenList TokenList;
 typedef struct Table Table;
 typedef struct DataBase DataBase;
+
+typedef struct  SelectQuery {
+    bool select_all;
+    bool has_condition;
+
+    string table_name;
+
+    TokenList* col_list;
+
+    string condition_collum;
+    string condition_value;
+}SelectQuery;
 
 typedef struct TokenList {
     string* tokens;
@@ -36,7 +51,7 @@ typedef struct DataBase {
 
 
 void save_db(DataBase*);
-void load_db();
+DataBase* load_db();
 
 Table* search_table(DataBase*, const string);
 string search_in_table(DataBase*, const string, const string);
@@ -46,7 +61,7 @@ void create_table(DataBase*, const string);
 void insert_table(DataBase*, Table*);
 void insert_collum(Table*, string, size_t);
 
-TokenList* tokenize(string);
+TokenList* tokenize(string, const string);
 void free_tokens(TokenList*);
 
 void exec_command(string*, size_t);
