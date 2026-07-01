@@ -21,7 +21,7 @@ UTILS_DIR := $(LIB_DIR)/utils
 # Flags
 # ===========================================
 
-CFLAGS := -Wall -Wextra -Wpedantic -std=c17 -g \
+CFLAGS := -Wall -Wextra -Wpedantic -ggdb -std=c17 -g \
 		   -I$(INC_DIR) \
 		   -I$(READ_DIR) \
 		   -I$(UTILS_DIR)

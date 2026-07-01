@@ -5,10 +5,12 @@ typedef struct TokenList TokenList;
 
 typedef struct TokenList {
     char** tokens;
-    unsigned int count;
-    unsigned int cap;
+    size_t count;
+    size_t cap;
 }TokenList;
 
-TokenList* tokenize(char*);
+
+TokenList* tokenize(char* line, const char* delim);
+
 
 #endif
