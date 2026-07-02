@@ -1,8 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "tokens.h"
 #include "table.h"
 #include "database.h"
 #include "utils.h"
+
+Table* search_table(DataBase* db, const char* name)
+{
+    if (!db || !name) return NULL;
+
+    size_t index = hash(name);
+    Table* head = db->buckets[index];
+
+    for (Table* table = head; table != NULL; table = table->next)
+    {
+        if (strcmp(table->name, name) == 0) return table;
+    }
+    return NULL;
+}
 
 static Table* new_table(const char* name)
 {
@@ -37,4 +52,29 @@ void create_table(DataBase* db, const char* name)
     Table* head = db->buckets[index];
     table->next = head;
     db->buckets[index] = table;
+}
+
+void insert_col(Table* table, char* col)
+{
+    if (!table || !col || !table->cols) return;
+
+    if (table->cols_count + 1>= table->cols_cap)
+    {
+        size_t new_cap = table->cols_cap * 2;
+        char** temp = realloc(table->cols, new_cap * sizeof(char*));
+        if (!temp) return;
+        table->cols = temp;
+    }
+    table->cols[table->cols_count++] = strdup(col);
+}
+
+void define_table(DataBase* db, const char* name, TokenList* list)
+{
+    Table* table = search_table(db, name);
+    if (!db || !name || !list || !table) return;
+
+    for (size_t i = 0; i < list->count; i++)
+    {
+        insert_col(table, list->tokens[i]);
+    }
 }
