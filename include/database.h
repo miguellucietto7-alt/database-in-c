@@ -1,8 +1,8 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
-#include "table.h"
 
+typedef struct Table Table;
 typedef struct DataBase DataBase;
 
 typedef struct DataBase {
@@ -10,5 +10,7 @@ typedef struct DataBase {
     size_t count;
     size_t cap;
 }DataBase;
+
+DataBase* new_db();
 
 #endif

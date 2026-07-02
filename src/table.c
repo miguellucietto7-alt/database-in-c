@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "tokens.h"
 #include "table.h"
 #include "database.h"
@@ -9,8 +10,9 @@ Table* search_table(DataBase* db, const char* name)
 {
     if (!db || !name) return NULL;
 
-    size_t index = hash(name);
+    size_t index = hash(name) % db->cap;
     Table* head = db->buckets[index];
+    if (!head) return NULL;
 
     for (Table* table = head; table != NULL; table = table->next)
     {
@@ -37,6 +39,7 @@ static Table* new_table(const char* name)
     table->cols = malloc(sizeof(char*) * table->cols_cap);
     if (!table->cols || !table->rows)
     {
+        free(table->name);
         free(table);
         return NULL;
     }
@@ -46,7 +49,7 @@ static Table* new_table(const char* name)
 void create_table(DataBase* db, const char* name)
 {
     Table* table = new_table(name);
-    if (!name || !db || !table) return NULL;
+    if (!name || !db || !table) return;
 
     size_t index = hash(name) % db->cap;
     Table* head = db->buckets[index];

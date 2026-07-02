@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 
+typedef struct DataBase DataBase;
 typedef struct Table Table;
 
 typedef struct Table {
@@ -19,6 +20,7 @@ typedef struct Table {
     Table* next;
 }Table;
 
- 
+Table* search_table(DataBase*, const char*);
+void create_table(DataBase*, const char*);
 
 #endif

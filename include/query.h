@@ -2,7 +2,7 @@
 #define QUERY_H
 
 #include <stdbool.h>
-#include <tokens.h>
+#include "tokens.h"
 
 typedef struct DeleteQuery DeleteQuery;
 typedef struct SelectQuery SelectQuery;
