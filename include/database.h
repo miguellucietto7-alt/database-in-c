@@ -1,6 +1,7 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
+#define DB_PATH ".db"
 
 typedef struct Table Table;
 typedef struct DataBase DataBase;

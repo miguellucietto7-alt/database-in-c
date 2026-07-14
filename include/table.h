@@ -23,4 +23,7 @@ typedef struct Table {
 Table* search_table(DataBase*, const char*);
 void create_table(DataBase*, const char*);
 
+void load_table(DataBase* db, const char* file_path);
+void save_table(Table* table, const char* dir_name);
+
 #endif
