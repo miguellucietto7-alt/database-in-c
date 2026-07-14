@@ -61,7 +61,7 @@ void insert_col(Table* table, char* col)
 {
     if (!table || !col || !table->cols) return;
 
-    if (table->cols_count + 1>= table->cols_cap)
+    if (table->cols_count + 1 >= table->cols_cap)
     {
         size_t new_cap = table->cols_cap * 2;
         char** temp = realloc(table->cols, new_cap * sizeof(char*));
@@ -69,6 +69,25 @@ void insert_col(Table* table, char* col)
         table->cols = temp;
     }
     table->cols[table->cols_count++] = strdup(col);
+}
+
+void insert_row(Table* table, char** row)
+{
+    if (!table || !row) return;
+
+    if (table->rows_count + 1 >= table->rows_cap)
+    {
+        size_t ncap = table->rows_cap * 2;
+        char*** temp = realloc(table->rows, ncap * sizeof(char**));
+        if (!temp) return;
+        table->rows = temp;
+        table->rows_cap = ncap;
+    }
+    for (size_t i = 0; i < table->cols_count; i++)
+    {
+        table->rows[table->rows_count][i] = strdup(row[i]);
+    }
+    table->rows_count++;
 }
 
 void define_table(DataBase* db, const char* name, TokenList* list)

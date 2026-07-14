@@ -61,5 +61,6 @@ void free_tokens(TokenList* list)
     {
         free(list->tokens[i]);
     }
+    free(list->tokens);
     free(list);
 }
