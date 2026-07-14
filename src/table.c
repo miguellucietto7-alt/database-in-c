@@ -131,9 +131,9 @@ void free_table(Table* table)
 
 void load_table(DataBase* db, const char* file_path)
 {
-    if (!file_path) return NULL;
+    if (!file_path) return;
     FILE* file = fopen(file_path, "r");
-    Table* table = new_table(strtok(file, "\n"));
+    Table* table = new_table(fgetLine(file, "\n"));
 
     table->cols_count = strtoull(strtok(NULL, "|"), NULL, 10);
 
@@ -148,12 +148,13 @@ void load_table(DataBase* db, const char* file_path)
     
     table->rows_count = strtoull(strtok(NULL, "|"), NULL, 10);
 
-    for (list = strtok(NULL, "|"); list != NULL; list = strtok(NULL, "|"))
+    for (list = tokenize(strtok(NULL, "|"), " "); list != NULL; list = tokenize(strtok(NULL, "|"), " "))
     {
         insert_row(table, list->tokens);
     }
 
     fclose(file);
+    insert_table(db, table);
 }
 
 void save_table(Table* table, const char* dir_name)
@@ -180,12 +181,13 @@ void save_table(Table* table, const char* dir_name)
     // Salva as rows
     fprintf(file, "%zu|", table->rows_count);
     for (size_t i = 0; i < table->rows_count; i++)
+    {
         for (size_t j = 0; j < table->cols_count; j++)
         {
             fprintf(file, "%s ", table->rows[i][j]);
         }
         fprintf(file, "|");
-    
+    }
     fprintf(file, "\n");
 
     fclose(file);

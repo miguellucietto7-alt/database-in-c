@@ -1,6 +1,8 @@
 #ifndef TOKENS_H
 #define TOKENS_H
 
+#include <stdio.h>
+
 typedef struct TokenList TokenList;
 
 typedef struct TokenList {
@@ -11,6 +13,6 @@ typedef struct TokenList {
 
 
 TokenList* tokenize(char* line, const char* delim);
-
+void free_tokens(TokenList*);
 
 #endif
